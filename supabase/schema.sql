@@ -4,6 +4,20 @@
 --  Das Skript ist wiederholbar: erneutes Ausführen ändert keine Daten.
 -- ============================================================
 
+-- ---------- Schutz vor dem falschen Projekt ----------
+-- Die Urlaubsverwaltung gehört bewusst in ein eigenes Supabase-Projekt.
+-- Liegt hier die Mietverwaltung, bricht das Skript ab, statt deren Tabellen
+-- zu verändern.
+do $$ begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'properties'
+  ) then
+    raise exception 'Abbruch: In diesem Projekt liegt die Mietverwaltung. Bitte oben links das Urlaubs-Projekt auswählen.';
+  end if;
+end $$;
+
+
 -- ---------- Typen ----------
 do $$ begin
   create type user_role as enum ('admin', 'user');
@@ -34,6 +48,13 @@ create table if not exists profiles (
   active     boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Ergänzt die Spalten, falls die Tabelle aus einem abgebrochenen früheren
+-- Lauf stammt. `create table if not exists` würde sie sonst überspringen und
+-- spätere Regeln liefen ins Leere.
+alter table profiles add column if not exists role    user_role    not null default 'user';
+alter table profiles add column if not exists country country_code not null default 'AT';
+alter table profiles add column if not exists active  boolean      not null default true;
 
 -- Legt automatisch ein Profil an, sobald ein Auth-Benutzer erstellt wird.
 create or replace function public.handle_new_user()
@@ -109,6 +130,11 @@ create table if not exists leave_entitlements (
   created_at  timestamptz not null default now(),
   unique (profile_id, year)
 );
+
+alter table leave_entitlements
+  add column if not exists opening_carryover numeric(5, 2);
+alter table leave_entitlements
+  add column if not exists opening_carryover_expires_on date;
 
 create index if not exists entitlements_profile_idx on leave_entitlements (profile_id, year);
 
