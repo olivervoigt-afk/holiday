@@ -120,15 +120,28 @@ npm run dev
 
 ## E-Mail-Versand (optional)
 
+Verschickt werden zwei Nachrichten: an den Administrator bei jedem neuen
+Antrag und bei jeder beantragten Stornierung, an den Mitarbeiter bei jeder
+Entscheidung.
+
 1. Konto auf [resend.com](https://resend.com) anlegen (kostenlos bis 3.000
    Mails im Monat).
-2. Absender-Domain verifizieren oder die Testadresse
-   `onboarding@resend.dev` verwenden.
-3. `RESEND_API_KEY` und `RESEND_FROM` in `.env.local` eintragen, etwa
-   `RESEND_FROM="Urlaubsverwaltung <urlaub@oylio.com>"`.
+2. Unter *Domains* die Absender-Domain eintragen und die angezeigten
+   DNS-Einträge setzen. Zum blossen Ausprobieren geht auch
+   `onboarding@resend.dev` — damit lässt sich allerdings nur an die eigene
+   Kontoadresse senden.
+3. Unter *API Keys* einen Schlüssel mit dem Recht *Sending access* erzeugen.
+4. `RESEND_API_KEY` und `RESEND_FROM` in `.env.local` eintragen und in Vercel
+   hinterlegen, etwa `RESEND_FROM="Urlaubsverwaltung <urlaub@oylio.com>"`.
 
-Ohne diese Werte bleibt alles bei der Glocke in der Anwendung — der Versand
-wird stillschweigend übersprungen und kein Antrag scheitert daran.
+Prüfen lässt sich der Versand mit einer Beispielnachricht:
+
+```bash
+npm run test-mail -- name@example.com
+```
+
+Ohne die beiden Werte bleibt alles bei der Glocke in der Anwendung — der
+Versand wird stillschweigend übersprungen und kein Antrag scheitert daran.
 
 ## Veröffentlichen
 
@@ -155,6 +168,7 @@ src/lib/holidays.mjs      Feiertage AT/MT samt Osterberechnung (auch vom Seed ge
 src/lib/queries.ts        Lesezugriffe
 src/lib/actions/          Server Actions (Anträge, Benutzer, Feiertage, Anmeldung)
 src/lib/notify.ts         Glocke und E-Mail
+src/lib/mail.ts           Versand über Resend samt Nachrichtenlayout
 src/app/(app)/            Angemeldeter Bereich
 supabase/schema.sql       Tabellen, Trigger, Zugriffsrechte
 scripts/seed.mjs          Einmalige Einrichtung
