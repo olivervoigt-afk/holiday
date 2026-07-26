@@ -4,6 +4,7 @@ import { STATUS_LABELS, type LeaveStatus } from "@/lib/types";
 const TONES: Record<LeaveStatus, Tone> = {
   pending: "warning",
   approved: "positive",
+  cancel_requested: "warning",
   rejected: "negative",
   cancelled: "neutral",
 };

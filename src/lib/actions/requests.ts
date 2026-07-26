@@ -8,7 +8,12 @@ import { activeAdmins, notify } from "@/lib/notify";
 import { getProfileById, holidaysFor } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { KIND_LABELS_SHORT, type LeaveKind, type LeaveRequest } from "@/lib/types";
+import {
+  BLOCKING_STATUSES,
+  KIND_LABELS_SHORT,
+  type LeaveKind,
+  type LeaveRequest,
+} from "@/lib/types";
 import type { ActionState } from "./auth";
 
 const KINDS: LeaveKind[] = ["vacation", "special"];
@@ -38,7 +43,7 @@ async function describeClashes(
     .from("leave_requests")
     .select("start_date, end_date, status, profiles!inner(full_name, email)")
     .neq("profile_id", profileId)
-    .in("status", ["pending", "approved"])
+    .in("status", BLOCKING_STATUSES)
     .lte("start_date", end_date)
     .gte("end_date", start_date)
     .order("start_date");
@@ -102,7 +107,7 @@ export async function createRequest(
     .from("leave_requests")
     .select("start_date, end_date")
     .eq("profile_id", profile.id)
-    .in("status", ["pending", "approved"])
+    .in("status", BLOCKING_STATUSES)
     .lte("start_date", end_date)
     .gte("end_date", start_date);
 
@@ -116,6 +121,10 @@ export async function createRequest(
     };
   }
 
+  // Der Administrator entscheidet ohnehin selbst — sein eigener Antrag gilt
+  // deshalb sofort als genehmigt.
+  const selfApproved = profile.role === "admin";
+
   const { error } = await supabase.from("leave_requests").insert({
     profile_id: profile.id,
     kind,
@@ -124,7 +133,9 @@ export async function createRequest(
     start_half_day,
     end_half_day,
     reason,
-    status: "pending",
+    status: selfApproved ? "approved" : "pending",
+    decided_by: selfApproved ? profile.id : null,
+    decided_at: selfApproved ? new Date().toISOString() : null,
   });
 
   if (error) return { error: error.message };
@@ -136,7 +147,9 @@ export async function createRequest(
     if (admin.id === profile.id) continue;
     await notify({
       recipient: admin,
-      title: `Neuer Urlaubsantrag von ${name}`,
+      title: selfApproved
+        ? `${name} hat Urlaub eingetragen`
+        : `Neuer Urlaubsantrag von ${name}`,
       body: [
         `${KIND_LABELS_SHORT[kind]}: ${formatRange(start_date, end_date)} (${formatDayCount(days)})`,
         reason && `\nAnmerkung: ${reason}`,
@@ -150,7 +163,152 @@ export async function createRequest(
 
   revalidatePath("/");
   revalidatePath("/antraege");
-  return { success: `Antrag über ${formatDayCount(days)} eingereicht.` };
+  return {
+    success: selfApproved
+      ? `Urlaub über ${formatDayCount(days)} eingetragen und genehmigt.`
+      : `Antrag über ${formatDayCount(days)} eingereicht.`,
+  };
+}
+
+/**
+ * Ein bereits genehmigter Urlaub lässt sich nicht einfach löschen — der
+ * Mitarbeiter beantragt die Stornierung, der Administrator entscheidet.
+ * Der Administrator storniert seinen eigenen Urlaub direkt.
+ */
+export async function requestCancellation(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const profile = await requireProfile();
+  const id = text(formData, "id");
+  const cancel_reason = text(formData, "cancel_reason");
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!data) return { error: "Der Antrag wurde nicht gefunden." };
+  const leave = data as LeaveRequest;
+
+  if (leave.profile_id !== profile.id && profile.role !== "admin") {
+    return { error: "Keine Berechtigung." };
+  }
+  if (leave.status !== "approved") {
+    return { error: "Nur ein genehmigter Urlaub lässt sich stornieren." };
+  }
+
+  const direct = profile.role === "admin";
+
+  const { error } = await supabase
+    .from("leave_requests")
+    .update(
+      direct
+        ? {
+            status: "cancelled",
+            cancel_reason,
+            decided_by: profile.id,
+            decided_at: new Date().toISOString(),
+          }
+        : { status: "cancel_requested", cancel_reason },
+    )
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  if (!direct) {
+    const isHoliday = await holidaysFor(profile.country);
+    const days = requestDays(leave, isHoliday);
+    const name = profile.full_name || profile.email;
+
+    for (const admin of await activeAdmins()) {
+      await notify({
+        recipient: admin,
+        title: `${name} möchte Urlaub stornieren`,
+        body: `${KIND_LABELS_SHORT[leave.kind]}: ${formatRange(leave.start_date, leave.end_date)} (${formatDayCount(days)})${cancel_reason ? `\n\nBegründung: ${cancel_reason}` : ""}`,
+        href: "/",
+      });
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/antraege");
+  revalidatePath("/mitarbeiter");
+  return {
+    success: direct
+      ? "Urlaub storniert."
+      : "Stornierung beantragt — der Administrator entscheidet.",
+  };
+}
+
+/** Der Administrator entscheidet über eine beantragte Stornierung. */
+async function decideCancellation(
+  formData: FormData,
+  accept: boolean,
+): Promise<void> {
+  const admin = await requireAdmin();
+  const id = text(formData, "id");
+  const decision_note = text(formData, "decision_note");
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!data) return;
+  const leave = data as LeaveRequest;
+  if (leave.status !== "cancel_requested") return;
+
+  const { error } = await supabase
+    .from("leave_requests")
+    .update({
+      status: accept ? "cancelled" : "approved",
+      decided_by: admin.id,
+      decided_at: new Date().toISOString(),
+      decision_note,
+    })
+    .eq("id", id);
+
+  if (error) return;
+
+  const applicant = await getProfileById(leave.profile_id);
+  if (applicant) {
+    const isHoliday = await holidaysFor(applicant.country);
+    const days = requestDays(leave, isHoliday);
+
+    await notify({
+      recipient: applicant,
+      title: accept
+        ? "Deine Stornierung wurde genehmigt"
+        : "Deine Stornierung wurde abgelehnt",
+      body: [
+        `${KIND_LABELS_SHORT[leave.kind]}: ${formatRange(leave.start_date, leave.end_date)} (${formatDayCount(days)})`,
+        accept
+          ? "\nDie Tage stehen dir wieder zur Verfügung."
+          : "\nDer Urlaub bleibt genehmigt.",
+        decision_note && `\nAnmerkung: ${decision_note}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      href: "/antraege",
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/antraege");
+  revalidatePath("/mitarbeiter");
+}
+
+export async function approveCancellation(formData: FormData) {
+  await decideCancellation(formData, true);
+}
+
+export async function rejectCancellation(formData: FormData) {
+  await decideCancellation(formData, false);
 }
 
 /** Der Mitarbeiter zieht seinen eigenen, noch offenen Antrag zurück. */

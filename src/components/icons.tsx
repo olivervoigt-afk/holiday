@@ -120,6 +120,16 @@ export function SignOutIcon(props: IconProps) {
   );
 }
 
+/** Fähnchen — steht für die Feiertagsliste. */
+export function FlagIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 21V4" />
+      <path d="M6 4.5h11l-2.2 3.8L17 12H6z" />
+    </Svg>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <Svg {...props}>

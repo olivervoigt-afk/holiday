@@ -39,6 +39,7 @@ function req(p: Partial<LeaveRequest> & { start_date: string; end_date: string }
     start_half_day: false,
     end_half_day: false,
     reason: "",
+    cancel_reason: "",
     status: "approved",
     decided_by: null,
     decided_at: null,
@@ -126,6 +127,28 @@ const minus = computeBalances(
 check("Saldo 2026", minus.get(2026)!.closing, -5);
 check("Vortrag 2027 negativ", minus.get(2027)!.carryIn, -5);
 check("verfügbar 2027", minus.get(2027)!.available, 0);
+
+console.log("\n— Stornierung —");
+// Solange die Stornierung nur beantragt ist, bleiben die Tage angerechnet.
+const storno = computeBalances(
+  [ent({ year: 2026, annual_days: 25 })],
+  [
+    req({ start_date: "2026-08-03", end_date: "2026-08-07", status: "cancel_requested" }),
+    req({ start_date: "2026-09-07", end_date: "2026-09-11", status: "cancelled" }),
+  ],
+  at,
+  2026,
+);
+check("Storno beantragt zählt weiter", storno.get(2026)!.usedVacation, 5);
+check("Saldo bei beantragtem Storno", storno.get(2026)!.closing, 20);
+
+const storniert = computeBalances(
+  [ent({ year: 2026, annual_days: 25 })],
+  [req({ start_date: "2026-08-03", end_date: "2026-08-07", status: "cancelled" })],
+  at,
+  2026,
+);
+check("Storniert gibt die Tage frei", storniert.get(2026)!.closing, 25);
 
 console.log("\n— Antrag über den Jahreswechsel —");
 const wechsel = computeBalances(

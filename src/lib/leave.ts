@@ -1,8 +1,10 @@
-import type {
-  Entitlement,
-  LeaveRequest,
-  Profile,
-  TeamAbsence,
+import {
+  BLOCKING_STATUSES,
+  CONSUMING_STATUSES,
+  type Entitlement,
+  type LeaveRequest,
+  type Profile,
+  type TeamAbsence,
 } from "./types";
 
 /**
@@ -191,14 +193,18 @@ export function computeBalances(
   ];
   const firstYear = years.length ? Math.min(...years) : throughYear;
 
+  // Ein Urlaub, dessen Stornierung erst beantragt ist, gilt weiterhin als
+  // genehmigt — die Tage sind erst nach der Entscheidung wieder frei.
+  const consumes = (r: LeaveRequest) => CONSUMING_STATUSES.includes(r.status);
+
   const approvedVacation = requests.filter(
-    (r) => r.status === "approved" && r.kind === "vacation",
+    (r) => consumes(r) && r.kind === "vacation",
   );
   const pendingVacation = requests.filter(
     (r) => r.status === "pending" && r.kind === "vacation",
   );
   const approvedSpecial = requests.filter(
-    (r) => r.status === "approved" && r.kind === "special",
+    (r) => consumes(r) && r.kind === "special",
   );
 
   const balances = new Map<number, YearBalance>();
@@ -314,7 +320,7 @@ export function clashesFor(
       (other) =>
         other.id !== target.id &&
         other.profile_id !== target.profile_id &&
-        (other.status === "approved" || other.status === "pending") &&
+        BLOCKING_STATUSES.includes(other.status) &&
         overlaps(other, target),
     )
     .map((other) => {

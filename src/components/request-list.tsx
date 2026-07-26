@@ -1,10 +1,13 @@
+import CancelRequestForm from "@/components/cancel-request-form";
 import ConfirmButton from "@/components/confirm-button";
 import StatusBadge from "@/components/status-badge";
 import { Button, EmptyState, Input } from "@/components/ui";
 import {
+  approveCancellation,
   approveRequest,
   cancelRequest,
   deleteRequest,
+  rejectCancellation,
   rejectRequest,
   reopenRequest,
 } from "@/lib/actions/requests";
@@ -13,9 +16,13 @@ import {
   COUNTRY_LABELS,
   KIND_LABELS_SHORT,
   type LeaveRequest,
+  type LeaveStatus,
   type Profile,
   type TeamAbsence,
 } from "@/lib/types";
+
+/** Zustände, bei denen der Administrator die Entscheidung zurücknehmen kann. */
+const DECIDED: LeaveStatus[] = ["approved", "rejected", "cancelled"];
 
 export type RequestListProps = {
   requests: LeaveRequest[];
@@ -87,6 +94,11 @@ export default function RequestList({
                 {request.reason && (
                   <p className="mt-1.5 text-sm">{request.reason}</p>
                 )}
+                {request.cancel_reason && (
+                  <p className="mt-1.5 text-sm text-muted">
+                    Grund der Stornierung: {request.cancel_reason}
+                  </p>
+                )}
                 {request.decision_note && (
                   <p className="mt-1.5 text-sm text-muted">
                     Anmerkung: {request.decision_note}
@@ -131,6 +143,53 @@ export default function RequestList({
               </form>
             )}
 
+            {mode === "own" && request.status === "approved" && (
+              <div className="mt-3">
+                <CancelRequestForm requestId={request.id} direct={false} />
+              </div>
+            )}
+
+            {mode === "own" && request.status === "cancel_requested" && (
+              <p className="mt-2 text-xs text-muted">
+                Die Stornierung liegt beim Administrator. Bis zur Entscheidung
+                bleiben die Tage angerechnet.
+              </p>
+            )}
+
+            {mode === "admin" && request.status === "cancel_requested" && (
+              <div className="mt-3 space-y-2">
+                <form
+                  action={approveCancellation}
+                  className="flex flex-wrap gap-2"
+                >
+                  <input type="hidden" name="id" value={request.id} />
+                  <Input
+                    name="decision_note"
+                    placeholder="Anmerkung (optional)"
+                    className="min-w-0 flex-1 sm:max-w-xs"
+                  />
+                  <Button type="submit" variant="positive">
+                    Stornierung genehmigen
+                  </Button>
+                </form>
+                <form action={rejectCancellation}>
+                  <input type="hidden" name="id" value={request.id} />
+                  <ConfirmButton
+                    question="Stornierung ablehnen? Der Urlaub bleibt dann genehmigt."
+                    variant="secondary"
+                  >
+                    Stornierung ablehnen
+                  </ConfirmButton>
+                </form>
+              </div>
+            )}
+
+            {mode === "admin" && request.status === "approved" && (
+              <div className="mt-3">
+                <CancelRequestForm requestId={request.id} direct />
+              </div>
+            )}
+
             {mode === "admin" && request.status === "pending" && (
               <div className="mt-3 space-y-2">
                 <form action={approveRequest} className="flex flex-wrap gap-2">
@@ -156,7 +215,7 @@ export default function RequestList({
               </div>
             )}
 
-            {mode === "admin" && request.status !== "pending" && (
+            {mode === "admin" && DECIDED.includes(request.status) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <form action={reopenRequest}>
                   <input type="hidden" name="id" value={request.id} />

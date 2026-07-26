@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BellIcon,
   CalendarIcon,
+  FlagIcon,
   GearIcon,
   HomeIcon,
   ListIcon,
@@ -22,12 +23,13 @@ function linksFor(profile: Profile): NavLink[] {
   const base: NavLink[] = [
     { href: "/", label: "Übersicht", Icon: HomeIcon },
     { href: "/antraege", label: "Anträge", Icon: ListIcon },
+    { href: "/abwesenheiten", label: "Abwesend", Icon: CalendarIcon },
   ];
 
   if (profile.role === "admin") {
     base.push(
       { href: "/mitarbeiter", label: "Team", Icon: UsersIcon },
-      { href: "/feiertage", label: "Feiertage", Icon: CalendarIcon },
+      { href: "/feiertage", label: "Feiertage", Icon: FlagIcon },
     );
   }
 

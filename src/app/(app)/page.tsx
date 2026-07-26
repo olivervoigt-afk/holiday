@@ -8,7 +8,7 @@ import { requireProfile } from "@/lib/auth";
 import { formatDays, formatSigned } from "@/lib/format";
 import { clashesFor, emptyBalance, requestDays } from "@/lib/leave";
 import { getLeaveOverview, getTeamOverview } from "@/lib/queries";
-import { COUNTRY_LABELS, type Profile } from "@/lib/types";
+import { COUNTRY_LABELS, OPEN_STATUSES, type Profile } from "@/lib/types";
 
 type PageProps = {
   searchParams: Promise<{ jahr?: string }>;
@@ -98,8 +98,10 @@ async function AdminDashboard({
   const { rows, requests, lookups } = await getTeamOverview(year);
 
   const people = new Map(rows.map((row) => [row.profile.id, row.profile]));
+  // Offene Anträge und beantragte Stornierungen warten beide auf eine
+  // Entscheidung und stehen deshalb in derselben Liste.
   const pending = requests
-    .filter((r) => r.status === "pending")
+    .filter((r) => OPEN_STATUSES.includes(r.status))
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
 
   const days = new Map(

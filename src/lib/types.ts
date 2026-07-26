@@ -1,7 +1,26 @@
 export type UserRole = "admin" | "user";
 export type CountryCode = "AT" | "MT";
 export type LeaveKind = "vacation" | "special";
-export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type LeaveStatus =
+  | "pending"
+  | "approved"
+  /** Genehmigt, aber der Mitarbeiter hat die Stornierung beantragt. */
+  | "cancel_requested"
+  | "rejected"
+  | "cancelled";
+
+/** Zustände, die Urlaubstage verbrauchen. */
+export const CONSUMING_STATUSES: LeaveStatus[] = ["approved", "cancel_requested"];
+
+/** Zustände, die einen Zeitraum belegen — für Überschneidungen. */
+export const BLOCKING_STATUSES: LeaveStatus[] = [
+  "pending",
+  "approved",
+  "cancel_requested",
+];
+
+/** Zustände, über die der Administrator entscheiden muss. */
+export const OPEN_STATUSES: LeaveStatus[] = ["pending", "cancel_requested"];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrator",
@@ -28,8 +47,9 @@ export const KIND_LABELS_SHORT: Record<LeaveKind, string> = {
 export const STATUS_LABELS: Record<LeaveStatus, string> = {
   pending: "Offen",
   approved: "Genehmigt",
+  cancel_requested: "Stornierung beantragt",
   rejected: "Abgelehnt",
-  cancelled: "Zurückgezogen",
+  cancelled: "Storniert",
 };
 
 export type Profile = {
@@ -78,6 +98,8 @@ export type LeaveRequest = {
   start_half_day: boolean;
   end_half_day: boolean;
   reason: string;
+  /** Begründung des Mitarbeiters für eine beantragte Stornierung. */
+  cancel_reason: string;
   status: LeaveStatus;
   decided_by: string | null;
   decided_at: string | null;

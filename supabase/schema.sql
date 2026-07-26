@@ -32,8 +32,14 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type leave_status as enum ('pending', 'approved', 'rejected', 'cancelled');
+  create type leave_status as enum (
+    'pending', 'approved', 'cancel_requested', 'rejected', 'cancelled');
 exception when duplicate_object then null; end $$;
+
+-- Für Bestandsdatenbanken, die noch ohne 'cancel_requested' angelegt wurden.
+-- (Läuft in einer eigenen Anweisung, weil ein neuer Enum-Wert innerhalb
+-- derselben Transaktion noch nicht verwendet werden darf.)
+alter type leave_status add value if not exists 'cancel_requested' after 'approved';
 
 
 -- ---------- Benutzerprofile ----------
@@ -150,6 +156,8 @@ create table if not exists leave_requests (
   start_half_day boolean not null default false,
   end_half_day   boolean not null default false,
   reason        text not null default '',
+  -- Begründung des Mitarbeiters für eine beantragte Stornierung.
+  cancel_reason text not null default '',
   status        leave_status not null default 'pending',
   decided_by    uuid references profiles on delete set null,
   decided_at    timestamptz,
@@ -158,6 +166,9 @@ create table if not exists leave_requests (
   updated_at    timestamptz not null default now(),
   constraint leave_requests_range check (end_date >= start_date)
 );
+
+alter table leave_requests
+  add column if not exists cancel_reason text not null default '';
 
 create index if not exists leave_requests_profile_idx on leave_requests (profile_id, start_date);
 create index if not exists leave_requests_status_idx on leave_requests (status, start_date);
@@ -235,24 +246,58 @@ create policy leave_requests_select on leave_requests
   for select to authenticated
   using (profile_id = auth.uid() or public.is_admin());
 
--- Anlegen nur für sich selbst und nur als offener Antrag.
+-- Anlegen nur für sich selbst. Der Administrator entscheidet ohnehin selbst,
+-- sein eigener Antrag darf deshalb gleich genehmigt sein.
 drop policy if exists leave_requests_insert on leave_requests;
 create policy leave_requests_insert on leave_requests
   for insert to authenticated
-  with check (profile_id = auth.uid() and status = 'pending');
+  with check (
+    profile_id = auth.uid()
+    and (status = 'pending' or (public.is_admin() and status = 'approved'))
+  );
 
--- Ändern: der Administrator alles, der Mitarbeiter nur seine eigenen
--- offenen Anträge (bearbeiten oder zurückziehen).
+-- Ändern: der Administrator alles, der Mitarbeiter seine eigenen offenen und
+-- genehmigten Anträge. Welche Statuswechsel dabei erlaubt sind, regelt der
+-- Trigger weiter unten — eine Policy kann das nicht spaltengenau.
 drop policy if exists leave_requests_update on leave_requests;
 create policy leave_requests_update on leave_requests
   for update to authenticated
-  using (public.is_admin() or (profile_id = auth.uid() and status = 'pending'))
+  using (
+    public.is_admin()
+    or (profile_id = auth.uid() and status in ('pending', 'approved'))
+  )
   with check (public.is_admin() or profile_id = auth.uid());
 
 drop policy if exists leave_requests_delete on leave_requests;
 create policy leave_requests_delete on leave_requests
   for delete to authenticated
   using (public.is_admin() or (profile_id = auth.uid() and status = 'pending'));
+
+-- Erlaubte Statuswechsel für Mitarbeiter:
+--   offen     → zurückgezogen        (Antrag zurückziehen)
+--   genehmigt → Storno beantragt     (Stornierung beim Administrator anfragen)
+-- Alles andere bleibt dem Administrator vorbehalten. Ohne diesen Trigger
+-- könnte ein Mitarbeiter seinen genehmigten Urlaub per Direktzugriff auf die
+-- Schnittstelle selbst stornieren.
+create or replace function public.guard_leave_status()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if public.is_admin() then return new; end if;
+  if old.status = new.status then return new; end if;
+  if old.status = 'pending'  and new.status = 'cancelled'        then return new; end if;
+  if old.status = 'approved' and new.status = 'cancel_requested' then return new; end if;
+
+  raise exception 'Dieser Statuswechsel ist nicht erlaubt (% → %).',
+    old.status, new.status;
+end $$;
+
+drop trigger if exists leave_requests_guard on leave_requests;
+create trigger leave_requests_guard
+  before update on leave_requests
+  for each row execute function public.guard_leave_status();
 
 -- Abwesenheiten der Kollegen: wer im selben Land arbeitet, soll bei der
 -- Planung sehen, wer sonst noch weg ist — aber nur Name und Zeitraum, nicht
@@ -277,7 +322,7 @@ as $$
          r.start_half_day, r.end_half_day, r.kind, r.status
   from public.leave_requests r
   join public.profiles p on p.id = r.profile_id
-  where r.status in ('pending', 'approved')
+  where r.status in ('pending', 'approved', 'cancel_requested')
     and r.start_date <= to_day
     and r.end_date >= from_day
     and p.active
