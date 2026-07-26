@@ -11,8 +11,23 @@ import type { Profile } from "./types";
  * protokolliert und geschluckt.
  */
 
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+/**
+ * Adresse für die Links in den E-Mails. Auf Vercel steht die endgültige
+ * Domain erst nach dem ersten Deploy fest, deshalb greift die Anwendung
+ * ersatzweise auf die von Vercel gesetzten Variablen zurück.
+ */
+function appUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}`;
+
+  return "http://localhost:3400";
+}
+
+const APP_URL = appUrl();
 
 export type NotifyInput = {
   recipient: Pick<Profile, "id" | "email" | "full_name">;

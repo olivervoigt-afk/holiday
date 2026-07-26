@@ -132,10 +132,20 @@ wird stillschweigend übersprungen und kein Antrag scheitert daran.
 
 ## Veröffentlichen
 
-Auf [Vercel](https://vercel.com) importieren, dieselben Umgebungsvariablen
-hinterlegen und `NEXT_PUBLIC_APP_URL` auf die endgültige Adresse setzen.
-Vercel fasst die Datenbank nicht an: Schemaänderungen laufen weiterhin über
-den SQL Editor.
+1. Auf [Vercel](https://vercel.com) *Add New → Project* wählen und das Repo
+   `olivervoigt-afk/holiday` importieren. Framework und Befehle erkennt Vercel
+   selbst.
+2. Vor dem ersten Deploy unter *Environment Variables* diese drei Werte
+   eintragen — dieselben wie in `.env.local`:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`.
+3. `NEXT_PUBLIC_APP_URL` kann weggelassen werden: ohne diesen Wert nimmt die
+   Anwendung die Produktionsdomain aus `VERCEL_PROJECT_PRODUCTION_URL`. Erst
+   bei einer eigenen Domain lohnt es sich, ihn ausdrücklich zu setzen.
+4. Für den E-Mail-Versand zusätzlich `RESEND_API_KEY` und `RESEND_FROM`.
+
+Jeder Push auf `main` löst ein neues Deploy aus. Vercel fasst die Datenbank
+nicht an: Schemaänderungen laufen weiterhin über den SQL Editor.
 
 ## Aufbau
 
