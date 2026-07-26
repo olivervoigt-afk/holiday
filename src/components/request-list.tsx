@@ -12,6 +12,7 @@ import {
   reopenRequest,
 } from "@/lib/actions/requests";
 import { formatDateTime, formatDayCount, formatRange } from "@/lib/format";
+import { toISODate } from "@/lib/leave";
 import {
   COUNTRY_LABELS,
   KIND_LABELS_SHORT,
@@ -143,11 +144,14 @@ export default function RequestList({
               </form>
             )}
 
-            {mode === "own" && request.status === "approved" && (
-              <div className="mt-3">
-                <CancelRequestForm requestId={request.id} direct={false} />
-              </div>
-            )}
+            {/* Vergangener Urlaub lässt sich nicht mehr zurückgeben. */}
+            {mode === "own" &&
+              request.status === "approved" &&
+              request.end_date >= toISODate(new Date()) && (
+                <div className="mt-3">
+                  <CancelRequestForm requestId={request.id} direct={false} />
+                </div>
+              )}
 
             {mode === "own" && request.status === "cancel_requested" && (
               <p className="mt-2 text-xs text-muted">

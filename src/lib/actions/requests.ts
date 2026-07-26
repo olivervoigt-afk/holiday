@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { formatDayCount, formatRange } from "@/lib/format";
-import { overlaps, requestDays } from "@/lib/leave";
+import { overlaps, requestDays, toISODate } from "@/lib/leave";
 import { activeAdmins, notify } from "@/lib/notify";
 import { getProfileById, holidaysFor } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -201,6 +201,15 @@ export async function requestCancellation(
   }
 
   const direct = profile.role === "admin";
+
+  // Vergangenen Urlaub kann man nicht mehr zurückgeben. Der Administrator
+  // darf es trotzdem, um Fehler in der Aufzeichnung zu berichtigen.
+  if (!direct && leave.end_date < toISODate(new Date())) {
+    return {
+      error:
+        "Dieser Urlaub liegt in der Vergangenheit und lässt sich nicht mehr stornieren.",
+    };
+  }
 
   const { error } = await supabase
     .from("leave_requests")

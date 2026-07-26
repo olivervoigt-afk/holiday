@@ -1,6 +1,10 @@
+import CancelRequestForm from "@/components/cancel-request-form";
+import ConfirmButton from "@/components/confirm-button";
 import StatusBadge from "@/components/status-badge";
 import { EmptyState } from "@/components/ui";
+import { cancelRequest } from "@/lib/actions/requests";
 import { formatDate, formatDays, formatRange } from "@/lib/format";
+import { toISODate } from "@/lib/leave";
 import { KIND_LABELS_SHORT, type LeaveRequest, type Profile } from "@/lib/types";
 
 /**
@@ -11,6 +15,7 @@ export default function RequestTable({
   requests,
   days,
   people,
+  mode = "none",
   emptyTitle = "Keine Einträge",
   emptyDescription,
 }: {
@@ -18,9 +23,12 @@ export default function RequestTable({
   days: Map<string, number>;
   /** Namen anzeigen — für Ansichten über mehrere Personen. */
   people?: Map<string, Profile>;
+  /** "own" blendet eine Spalte mit Zurückziehen bzw. Stornieren ein. */
+  mode?: "none" | "own";
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
+  const today = toISODate(new Date());
   if (requests.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
@@ -37,7 +45,13 @@ export default function RequestTable({
             <th className="px-3 py-2.5 text-right font-medium">Tage</th>
             <th className="px-3 py-2.5 font-medium">Art</th>
             <th className="px-3 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 font-medium sm:px-5">Entschieden</th>
+            {mode === "own" ? (
+              <th className="px-4 py-2.5 font-medium sm:px-5">
+                <span className="sr-only">Aktion</span>
+              </th>
+            ) : (
+              <th className="px-4 py-2.5 font-medium sm:px-5">Entschieden</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -74,9 +88,37 @@ export default function RequestTable({
                     </span>
                   )}
                 </td>
-                <td className="tabular px-4 py-2.5 text-muted whitespace-nowrap sm:px-5">
-                  {request.decided_at ? formatDate(request.decided_at.slice(0, 10)) : "—"}
-                </td>
+                {mode === "own" ? (
+                  <td className="px-4 py-2.5 sm:px-5">
+                    {request.status === "pending" && (
+                      <form action={cancelRequest}>
+                        <input type="hidden" name="id" value={request.id} />
+                        <ConfirmButton
+                          question="Diesen Antrag wirklich zurückziehen?"
+                          variant="ghost"
+                        >
+                          Zurückziehen
+                        </ConfirmButton>
+                      </form>
+                    )}
+                    {/* Vergangenes lässt sich nicht mehr zurückgeben. */}
+                    {request.status === "approved" &&
+                      request.end_date >= today && (
+                        <CancelRequestForm requestId={request.id} direct={false} />
+                      )}
+                    {request.status === "cancel_requested" && (
+                      <span className="text-xs text-muted">
+                        beim Administrator
+                      </span>
+                    )}
+                  </td>
+                ) : (
+                  <td className="tabular px-4 py-2.5 text-muted whitespace-nowrap sm:px-5">
+                    {request.decided_at
+                      ? formatDate(request.decided_at.slice(0, 10))
+                      : "—"}
+                  </td>
+                )}
               </tr>
             );
           })}

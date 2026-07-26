@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BalanceBreakdown, BalanceTiles } from "@/components/balance-panel";
 import RequestList from "@/components/request-list";
+import RequestTable from "@/components/request-table";
 import { ButtonLink, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import YearSwitch from "@/components/year-switch";
 import { lastYear, resolveYear, selectableYears } from "@/lib/years";
@@ -70,12 +71,11 @@ async function UserDashboard({
           <Card>
             <CardHeader
               title={`Meine Anträge ${year}`}
-              description={`${inYear.length} ${inYear.length === 1 ? "Eintrag" : "Einträge"}`}
+              description={`${inYear.length} ${inYear.length === 1 ? "Eintrag" : "Einträge"} — ändern lässt sich das unter „Anträge“`}
             />
-            <RequestList
+            <RequestTable
               requests={inYear}
               days={days}
-              mode="own"
               emptyTitle={`Noch keine Anträge für ${year}`}
               emptyDescription="Über „Urlaub beantragen“ oben lässt sich der erste erfassen."
             />
