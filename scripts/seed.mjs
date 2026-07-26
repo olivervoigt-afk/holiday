@@ -15,6 +15,11 @@ import { generateHolidays } from "../src/lib/holidays.mjs";
 
 const YEAR = new Date().getFullYear();
 
+// Muss zu src/lib/years.ts passen — dort steht dieselbe Spanne für die
+// Jahresauswahl in der Oberfläche.
+const FIRST_YEAR = 2026;
+const YEARS_AHEAD = 2;
+
 /**
  * Startbelegschaft. Die Kontingente stammen aus der Abstimmung vom
  * 26.07.2026; `openingCarryover` ist der Vortrag aus dem Vorjahr, der noch
@@ -149,9 +154,14 @@ async function seedPeople() {
 }
 
 async function seedHolidays() {
+  // Dieselbe Spanne, die die Anwendung anbietet: ab dem ersten geführten
+  // Jahr bis zwei Jahre voraus.
+  const from = Math.max(FIRST_YEAR, YEAR - 1);
+  const to = YEAR + YEARS_AHEAD;
+
   const rows = [];
   for (const country of ["AT", "MT"]) {
-    for (const year of [YEAR - 1, YEAR, YEAR + 1]) {
+    for (let year = from; year <= to; year++) {
       for (const holiday of generateHolidays(country, year)) {
         rows.push({ country, ...holiday });
       }
@@ -163,9 +173,7 @@ async function seedHolidays() {
     .upsert(rows, { onConflict: "country,day", ignoreDuplicates: true });
   if (error) throw error;
 
-  console.log(
-    `· Feiertage ${YEAR - 1}–${YEAR + 1} für Österreich und Malta ergänzt`,
-  );
+  console.log(`· Feiertage ${from}–${to} für Österreich und Malta ergänzt`);
 }
 
 async function main() {

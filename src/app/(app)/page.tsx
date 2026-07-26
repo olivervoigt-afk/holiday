@@ -2,7 +2,8 @@ import Link from "next/link";
 import { BalanceBreakdown, BalanceTiles } from "@/components/balance-panel";
 import RequestList from "@/components/request-list";
 import { ButtonLink, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
-import YearSwitch, { resolveYear, selectableYears } from "@/components/year-switch";
+import YearSwitch from "@/components/year-switch";
+import { lastYear, resolveYear, selectableYears } from "@/lib/years";
 import { requireProfile } from "@/lib/auth";
 import { formatDays, formatSigned } from "@/lib/format";
 import { clashesFor, emptyBalance, requestDays } from "@/lib/leave";
@@ -35,7 +36,7 @@ async function UserDashboard({
 }) {
   const { requests, isHoliday, balances } = await getLeaveOverview(
     profile,
-    Math.max(year, new Date().getFullYear() + 1),
+    Math.max(year, lastYear()),
   );
   const balance = balances.get(year) ?? emptyBalance(year);
 

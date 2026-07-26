@@ -9,7 +9,8 @@ import {
 import RequestList from "@/components/request-list";
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { EditUserForm, PasswordResetForm } from "@/components/user-forms";
-import YearSwitch, { resolveYear, selectableYears } from "@/components/year-switch";
+import YearSwitch from "@/components/year-switch";
+import { lastYear, resolveYear, selectableYears } from "@/lib/years";
 import { requireProfile } from "@/lib/auth";
 import { deleteUser } from "@/lib/actions/users";
 import { formatDate, formatDays } from "@/lib/format";
@@ -48,7 +49,7 @@ export default async function EmployeePage({
 
   const [{ requests, isHoliday, balances }, entitlements, allRequests, profiles] =
     await Promise.all([
-      getLeaveOverview(person, Math.max(year, new Date().getFullYear() + 1)),
+      getLeaveOverview(person, Math.max(year, lastYear())),
       getEntitlements(person.id),
       getAllRequests(),
       getProfiles(true),

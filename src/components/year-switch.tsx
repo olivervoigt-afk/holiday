@@ -39,15 +39,3 @@ export default function YearSwitch({
     </div>
   );
 }
-
-/** Die Jahre, die zur Auswahl stehen: zwei zurück, eines voraus. */
-export function selectableYears(reference = new Date().getFullYear()): number[] {
-  return [reference - 2, reference - 1, reference, reference + 1];
-}
-
-/** Liest ?jahr= aus der Adresse und begrenzt den Wert auf die Auswahl. */
-export function resolveYear(raw: string | string[] | undefined): number {
-  const years = selectableYears();
-  const value = Number(Array.isArray(raw) ? raw[0] : raw);
-  return years.includes(value) ? value : new Date().getFullYear();
-}

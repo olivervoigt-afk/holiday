@@ -1,4 +1,5 @@
 import { computeBalances, holidayLookup } from "./leave";
+import { currentYear, lastYear } from "./years";
 import { createClient } from "./supabase/server";
 import type {
   CountryCode,
@@ -9,8 +10,6 @@ import type {
   Profile,
   TeamAbsence,
 } from "./types";
-
-export const currentYear = () => new Date().getFullYear();
 
 export async function countUnread(profileId: string): Promise<number> {
   const supabase = await createClient();
@@ -187,7 +186,7 @@ export async function getLeaveOverview(profile: Profile, throughYear?: number) {
     holidaysFor(profile.country),
   ]);
 
-  const last = throughYear ?? currentYear() + 1;
+  const last = throughYear ?? lastYear();
   const balances = computeBalances(entitlements, requests, isHoliday, last);
 
   return { entitlements, requests, isHoliday, balances };

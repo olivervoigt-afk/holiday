@@ -3,13 +3,9 @@ import RequestForm from "@/components/request-form";
 import { PageHeader } from "@/components/ui";
 import { requireProfile } from "@/lib/auth";
 import { emptyBalance } from "@/lib/leave";
-import {
-  currentYear,
-  getHolidays,
-  getLeaveOverview,
-  getTeamAbsences,
-} from "@/lib/queries";
+import { getHolidays, getLeaveOverview, getTeamAbsences } from "@/lib/queries";
 import { COUNTRY_LABELS } from "@/lib/types";
+import { currentYear, FIRST_YEAR, lastYear } from "@/lib/years";
 
 export const metadata = { title: "Neuer Antrag" };
 
@@ -20,9 +16,9 @@ export default async function NewRequestPage() {
   const [holidays, { balances }, absences] = await Promise.all([
     getHolidays(profile.country),
     getLeaveOverview(profile),
-    // Ein grosszügiges Fenster: von heute an rund zwei Jahre voraus und ein
-    // halbes Jahr zurück, damit auch nachträgliche Anträge geprüft werden.
-    getTeamAbsences(`${year - 1}-01-01`, `${year + 2}-12-31`),
+    // Genau die Spanne, die die Anwendung führt — damit auch nachträgliche
+    // Anträge und die Planung fürs übernächste Jahr abgedeckt sind.
+    getTeamAbsences(`${FIRST_YEAR}-01-01`, `${lastYear()}-12-31`),
   ]);
 
   const balance = balances.get(year) ?? emptyBalance(year);
