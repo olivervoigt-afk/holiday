@@ -26,6 +26,15 @@ export function selectableYears(reference = currentYear()): number[] {
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }
 
+/**
+ * Jahre für Ansichten, die nur nach vorn schauen — vergangene Abwesenheiten
+ * interessieren niemanden mehr.
+ */
+export function upcomingYears(reference = currentYear()): number[] {
+  const to = lastYear(reference);
+  return Array.from({ length: to - reference + 1 }, (_, i) => reference + i);
+}
+
 /** Liest ?jahr= aus der Adresse und begrenzt den Wert auf die Auswahl. */
 export function resolveYear(raw: string | string[] | undefined): number {
   const years = selectableYears();

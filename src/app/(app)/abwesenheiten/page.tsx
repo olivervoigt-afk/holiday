@@ -1,5 +1,6 @@
 import StatusBadge from "@/components/status-badge";
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import YearSwitch from "@/components/year-switch";
 import { requireProfile } from "@/lib/auth";
 import { formatDate, formatDayCount, formatRange, formatWeekday } from "@/lib/format";
 import { holidayLookup, requestDays, toISODate } from "@/lib/leave";
@@ -10,7 +11,7 @@ import {
   type CountryCode,
   type TeamAbsence,
 } from "@/lib/types";
-import { lastYear } from "@/lib/years";
+import { currentYear, upcomingYears } from "@/lib/years";
 
 export const metadata = { title: "Abwesenheiten" };
 
@@ -19,12 +20,24 @@ const MONTHS = new Intl.DateTimeFormat("de-AT", {
   year: "numeric",
 });
 
-export default async function AbsencesPage() {
+export default async function AbsencesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ jahr?: string }>;
+}) {
   const profile = await requireProfile();
   const today = toISODate(new Date());
 
+  // Nur nach vorn: was vorbei ist, muss niemand mehr nachschlagen.
+  const years = upcomingYears();
+  const raw = Number((await searchParams).jahr);
+  const year = years.includes(raw) ? raw : currentYear();
+
+  const from = year === currentYear() ? today : `${year}-01-01`;
+  const to = `${year}-12-31`;
+
   const [absences, holidays] = await Promise.all([
-    getTeamAbsences(today, `${lastYear()}-12-31`),
+    getTeamAbsences(from, to),
     getHolidays(),
   ]);
 
@@ -40,7 +53,7 @@ export default async function AbsencesPage() {
   // Nach Monat des Beginns gruppieren — so bleibt eine lange Liste lesbar.
   const groups = new Map<string, TeamAbsence[]>();
   for (const absence of absences) {
-    const key = absence.start_date.slice(0, 7);
+    const key = (absence.start_date < from ? from : absence.start_date).slice(0, 7);
     const list = groups.get(key);
     if (list) list.push(absence);
     else groups.set(key, [absence]);
@@ -56,8 +69,15 @@ export default async function AbsencesPage() {
         title="Wer ist wann weg?"
         description={
           profile.role === "admin"
-            ? "Alle kommenden Abwesenheiten im Team"
+            ? "Kommende Abwesenheiten im Team"
             : `Kommende Abwesenheiten der Kolleginnen und Kollegen in ${COUNTRY_LABELS[profile.country]}`
+        }
+        action={
+          <YearSwitch
+            years={years}
+            current={year}
+            basePath="/abwesenheiten"
+          />
         }
       />
 
@@ -82,13 +102,17 @@ export default async function AbsencesPage() {
 
       <Card>
         <CardHeader
-          title="Kommende Abwesenheiten"
-          description={`${absences.length} ${absences.length === 1 ? "Eintrag" : "Einträge"} ab heute`}
+          title={`Abwesenheiten ${year}`}
+          description={
+            year === currentYear()
+              ? `${absences.length} ${absences.length === 1 ? "Eintrag" : "Einträge"} ab heute`
+              : `${absences.length} ${absences.length === 1 ? "Eintrag" : "Einträge"}`
+          }
         />
 
         {absences.length === 0 ? (
           <EmptyState
-            title="Niemand ist eingetragen"
+            title={`Für ${year} ist niemand eingetragen`}
             description="Sobald Urlaub beantragt wird, steht er hier."
           />
         ) : (
@@ -154,7 +178,7 @@ export default async function AbsencesPage() {
       </Card>
 
       <p className="mt-4 text-xs text-muted">
-        Angezeigt werden Zeitraum und Name — Begründungen bleiben zwischen dem
+        Angezeigt werden Name und Zeitraum — Begründungen bleiben zwischen dem
         Mitarbeiter und dem Administrator.
       </p>
     </>

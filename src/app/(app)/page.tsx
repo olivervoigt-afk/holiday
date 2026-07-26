@@ -119,7 +119,7 @@ async function AdminDashboard({
   return (
     <>
       <PageHeader
-        title="Übersicht"
+        title={`Hallo, ${profile.full_name.split(" ")[0] || profile.email}`}
         description={`${rows.length} aktive Mitarbeiter · ${pending.length} offene ${pending.length === 1 ? "Antrag" : "Anträge"}`}
         action={<ButtonLink href="/antraege/neu">Urlaub beantragen</ButtonLink>}
       />
