@@ -189,13 +189,20 @@ create trigger leave_requests_touch
 -- ---------- Benachrichtigungen ----------
 create table if not exists notifications (
   id          uuid primary key default gen_random_uuid(),
+  -- Empfänger.
   profile_id  uuid not null references profiles on delete cascade,
+  -- Person, um die es geht. Wird das Konto gelöscht, verschwinden auch die
+  -- Meldungen darüber aus fremden Postfächern.
+  subject_id  uuid references profiles on delete cascade,
   title       text not null,
   body        text not null default '',
   href        text not null default '/',
   read_at     timestamptz,
   created_at  timestamptz not null default now()
 );
+
+alter table notifications
+  add column if not exists subject_id uuid references profiles on delete cascade;
 
 create index if not exists notifications_profile_idx
   on notifications (profile_id, read_at, created_at desc);

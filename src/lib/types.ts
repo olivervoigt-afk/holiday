@@ -127,7 +127,10 @@ export type TeamAbsence = {
 
 export type Notification = {
   id: string;
+  /** Empfänger. */
   profile_id: string;
+  /** Person, um die es geht — damit die Meldung mit ihr verschwindet. */
+  subject_id: string | null;
   title: string;
   body: string;
   href: string;

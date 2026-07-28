@@ -17,16 +17,31 @@ export type NotifyInput = {
   body: string;
   /** Interner Pfad, auf den die Glocke und der Knopf in der E-Mail zeigen. */
   href?: string;
+  /**
+   * Person, um die es geht. Wird deren Konto gelöscht, verschwindet die
+   * Meldung mit — sonst bliebe sie als Karteileiche im fremden Postfach.
+   */
+  subjectId?: string;
 };
 
 /** Eintrag in der Glocke plus E-Mail an eine Person. */
-export async function notify({ recipient, title, body, href = "/" }: NotifyInput) {
+export async function notify({
+  recipient,
+  title,
+  body,
+  href = "/",
+  subjectId,
+}: NotifyInput) {
   const admin = createAdminClient();
 
   try {
-    await admin
-      .from("notifications")
-      .insert({ profile_id: recipient.id, title, body, href });
+    await admin.from("notifications").insert({
+      profile_id: recipient.id,
+      subject_id: subjectId ?? null,
+      title,
+      body,
+      href,
+    });
   } catch (error) {
     console.error("Benachrichtigung konnte nicht gespeichert werden:", error);
   }

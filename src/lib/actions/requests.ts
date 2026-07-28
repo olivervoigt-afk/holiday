@@ -158,6 +158,7 @@ export async function createRequest(
         .filter(Boolean)
         .join("\n"),
       href: "/",
+      subjectId: profile.id,
     });
   }
 
@@ -238,6 +239,7 @@ export async function requestCancellation(
         title: `${name} möchte Urlaub stornieren`,
         body: `${KIND_LABELS_SHORT[leave.kind]}: ${formatRange(leave.start_date, leave.end_date)} (${formatDayCount(days)})${cancel_reason ? `\n\nBegründung: ${cancel_reason}` : ""}`,
         href: "/",
+        subjectId: profile.id,
       });
     }
   }
@@ -304,6 +306,7 @@ async function decideCancellation(
         .filter(Boolean)
         .join("\n"),
       href: "/antraege",
+      subjectId: applicant.id,
     });
   }
 
@@ -379,6 +382,7 @@ async function decide(
       title: `Dein Antrag wurde ${verb}`,
       body: `${KIND_LABELS_SHORT[leave.kind]}: ${formatRange(leave.start_date, leave.end_date)} (${formatDayCount(days)})${decision_note ? `\n\nAnmerkung: ${decision_note}` : ""}`,
       href: "/antraege",
+      subjectId: applicant.id,
     });
   }
 
