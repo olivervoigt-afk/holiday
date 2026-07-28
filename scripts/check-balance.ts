@@ -110,12 +110,41 @@ const verfall = computeBalances(
   [req({ start_date: "2026-02-02", end_date: "2026-02-04" })], // 3 Tage im Februar
   at,
   2026,
+  "2026-07-26", // der Stichtag 31.03.2026 ist verstrichen
 );
 const f26 = verfall.get(2026)!;
 check("Vortrag", f26.carryIn, 10);
 check("davon verfallen", f26.carryForfeited, 7);
 check("verfügbar", f26.available, 28);
 check("Saldo", f26.closing, 25);
+
+console.log("\n— Stichtag steht noch bevor —");
+// Vorschau auf ein künftiges Jahr: der Übertrag darf nicht schon als
+// verfallen gelten, solange der Verfallstag in der Zukunft liegt.
+const vorschau = computeBalances(
+  [ent({ year: 2026, annual_days: 25, carryover_max: 25, carryover_expires_on: "2027-03-31" })],
+  [],
+  at,
+  2027,
+  "2026-07-26", // Betrachtungszeitpunkt: der Stichtag ist noch nicht erreicht
+);
+const p27 = vorschau.get(2027)!;
+check("Vortrag 2027", p27.carryIn, 25);
+check("noch nichts verfallen", p27.carryForfeited, 0);
+check("Stichtag steht bevor", p27.carryExpiryPending, true);
+check("verfügbar 2027", p27.available, 50);
+
+// Derselbe Fall, nachdem der Stichtag verstrichen ist.
+const danach = computeBalances(
+  [ent({ year: 2026, annual_days: 25, carryover_max: 25, carryover_expires_on: "2027-03-31" })],
+  [],
+  at,
+  2027,
+  "2027-04-01",
+);
+const n27 = danach.get(2027)!;
+check("nach dem Stichtag verfallen", n27.carryForfeited, 25);
+check("verfügbar 2027", n27.available, 25);
 
 console.log("\n— Negativer Vortrag durch Übergenehmigung —");
 const minus = computeBalances(

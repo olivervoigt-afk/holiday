@@ -18,9 +18,11 @@ export function BalanceTiles({ balance }: { balance: YearBalance }) {
         hint={
           balance.carryIn < 0
             ? "Minus aus dem Vorjahr"
-            : balance.carryExpiresOn && balance.carryIn > 0
-              ? `verfällt am ${formatDate(balance.carryExpiresOn)}`
-              : "aus dem Vorjahr"
+            : balance.carryExpiryPending && balance.carryExpiresOn
+              ? `bis ${formatDate(balance.carryExpiresOn)} zu verbrauchen`
+              : balance.carryForfeited > 0 && balance.carryExpiresOn
+                ? `davon ${formatDays(balance.carryForfeited)} am ${formatDate(balance.carryExpiresOn)} verfallen`
+                : "aus dem Vorjahr"
         }
       />
       <Stat
@@ -101,7 +103,13 @@ export function BalanceBreakdown({ balance }: { balance: YearBalance }) {
       <div className="divide-y divide-border">
         <Row
           label="Vortrag aus dem Vorjahr"
-          hint={balance.carryIsManual ? "als Startsaldo hinterlegt" : undefined}
+          hint={
+            balance.carryIsManual
+              ? "als Startsaldo hinterlegt"
+              : balance.carryExpiryPending && balance.carryExpiresOn
+                ? `bis ${formatDate(balance.carryExpiresOn)} zu verbrauchen`
+                : undefined
+          }
           value={formatSigned(balance.carryIn)}
           tone={balance.carryIn < 0 ? "negative" : undefined}
         />

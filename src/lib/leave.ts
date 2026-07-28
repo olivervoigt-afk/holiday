@@ -96,6 +96,8 @@ export type YearBalance = {
   carryExpiresOn: string | null;
   /** Anteil des Übertrags, der bis zum Stichtag nicht verbraucht wurde. */
   carryForfeited: number;
+  /** Der Stichtag steht noch bevor — es kann also noch nichts verfallen sein. */
+  carryExpiryPending: boolean;
   /** Übertrag nach Verfall plus Jahresanspruch. */
   available: number;
   usedVacation: number;
@@ -186,6 +188,8 @@ export function computeBalances(
   requests: LeaveRequest[],
   isHoliday: (day: string) => boolean,
   throughYear: number,
+  /** Stichtag der Betrachtung — nur für Prüfungen von aussen zu setzen. */
+  asOf: string = toISODate(new Date()),
 ): Map<number, YearBalance> {
   const years = [
     ...entitlements.map((e) => e.year),
@@ -230,9 +234,13 @@ export function computeBalances(
     const usedSpecial = sumDays(approvedSpecial, isHoliday, { from, to });
 
     // Der Übertrag wird zuerst verbraucht. Was bis zum Stichtag übrig ist,
-    // verfällt. Ohne Stichtag verfällt nichts.
+    // verfällt. Ohne Stichtag verfällt nichts — und solange der Stichtag noch
+    // bevorsteht, ebenfalls nicht: was künftig verbraucht wird, steht ja noch
+    // nicht fest. Für Vorschauen auf kommende Jahre ist das entscheidend.
+    const expiryPassed = Boolean(carryExpiresOn && carryExpiresOn < asOf);
+
     let carryForfeited = 0;
-    if (carryIn > 0 && carryExpiresOn) {
+    if (carryIn > 0 && carryExpiresOn && expiryPassed) {
       const usedByDeadline = sumDays(approvedVacation, isHoliday, {
         from,
         to: carryExpiresOn < to ? carryExpiresOn : to,
@@ -253,6 +261,7 @@ export function computeBalances(
       carryIn,
       carryExpiresOn,
       carryForfeited,
+      carryExpiryPending: carryIn > 0 && Boolean(carryExpiresOn) && !expiryPassed,
       available,
       usedVacation,
       pendingVacation: pending,
@@ -284,6 +293,7 @@ export function emptyBalance(year: number): YearBalance {
     carryIn: 0,
     carryExpiresOn: null,
     carryForfeited: 0,
+    carryExpiryPending: false,
     available: 0,
     usedVacation: 0,
     pendingVacation: 0,
