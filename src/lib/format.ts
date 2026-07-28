@@ -67,3 +67,13 @@ export function formatRange(from: string, to: string): string {
   if (sameYear) return `${formatDateShort(from)}–${formatDate(to)}`;
   return `${formatDate(from)} – ${formatDate(to)}`;
 }
+
+/**
+ * Wie formatRange, aber über den Jahreswechsel mit zweistelligen Jahren:
+ * "25.12.26–04.01.27". Spart in schmalen Spalten acht Zeichen.
+ */
+export function formatRangeShort(from: string, to: string): string {
+  if (from.slice(0, 4) === to.slice(0, 4)) return formatRange(from, to);
+  const drop = (iso: string) => `${formatDate(iso).slice(0, 6)}${iso.slice(2, 4)}`;
+  return `${drop(from)}–${drop(to)}`;
+}

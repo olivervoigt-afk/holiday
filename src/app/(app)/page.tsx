@@ -65,6 +65,7 @@ export default async function DashboardPage({
             <RequestTable
               requests={inYear}
               days={days}
+              variant="compact"
               emptyTitle={`Noch keine Anträge für ${year}`}
               emptyDescription="Über „Urlaub beantragen“ oben lässt sich der erste erfassen."
             />

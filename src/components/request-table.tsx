@@ -3,7 +3,12 @@ import ConfirmButton from "@/components/confirm-button";
 import StatusBadge from "@/components/status-badge";
 import { EmptyState } from "@/components/ui";
 import { cancelRequest } from "@/lib/actions/requests";
-import { formatDate, formatDays, formatRange } from "@/lib/format";
+import {
+  formatDate,
+  formatDays,
+  formatRange,
+  formatRangeShort,
+} from "@/lib/format";
 import { toISODate } from "@/lib/leave";
 import { KIND_LABELS_SHORT, type LeaveRequest, type Profile } from "@/lib/types";
 
@@ -16,6 +21,7 @@ export default function RequestTable({
   days,
   people,
   mode = "none",
+  variant = "full",
   emptyTitle = "Keine Einträge",
   emptyDescription,
 }: {
@@ -25,17 +31,25 @@ export default function RequestTable({
   people?: Map<string, Profile>;
   /** "own" blendet eine Spalte mit Zurückziehen bzw. Stornieren ein. */
   mode?: "none" | "own";
+  /**
+   * "compact" lässt Art und Entscheidungsdatum weg — für halbbreite Karten,
+   * in denen die volle Tabelle sonst seitlich abgeschnitten würde.
+   */
+  variant?: "full" | "compact";
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
   const today = toISODate(new Date());
+  const compact = variant === "compact";
   if (requests.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
+      <table
+        className={`w-full text-sm ${compact ? "" : "min-w-[560px]"}`}
+      >
         <thead>
           <tr className="border-b border-border text-left text-xs tracking-wide text-muted uppercase">
             {people && <th className="px-4 py-2.5 font-medium sm:px-5">Wer</th>}
@@ -43,15 +57,20 @@ export default function RequestTable({
               Zeitraum
             </th>
             <th className="px-3 py-2.5 text-right font-medium">Tage</th>
-            <th className="px-3 py-2.5 font-medium">Art</th>
-            <th className="px-3 py-2.5 font-medium">Status</th>
-            {mode === "own" ? (
-              <th className="px-4 py-2.5 font-medium sm:px-5">
-                <span className="sr-only">Aktion</span>
-              </th>
-            ) : (
-              <th className="px-4 py-2.5 font-medium sm:px-5">Entschieden</th>
-            )}
+            {!compact && <th className="px-3 py-2.5 font-medium">Art</th>}
+            <th
+              className={`py-2.5 font-medium ${compact ? "px-4 text-right sm:px-5" : "px-3"}`}
+            >
+              Status
+            </th>
+            {!compact &&
+              (mode === "own" ? (
+                <th className="px-4 py-2.5 font-medium sm:px-5">
+                  <span className="sr-only">Aktion</span>
+                </th>
+              ) : (
+                <th className="px-4 py-2.5 font-medium sm:px-5">Entschieden</th>
+              ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -67,9 +86,11 @@ export default function RequestTable({
                   </td>
                 )}
                 <td
-                  className={`tabular py-2.5 whitespace-nowrap ${people ? "px-3" : "px-4 sm:px-5"}`}
+                  className={`tabular py-2.5 ${compact ? "" : "whitespace-nowrap"} ${people ? "px-3" : "px-4 sm:px-5"}`}
                 >
-                  {formatRange(request.start_date, request.end_date)}
+                  {compact
+                    ? formatRangeShort(request.start_date, request.end_date)
+                    : formatRange(request.start_date, request.end_date)}
                   {(request.start_half_day || request.end_half_day) && (
                     <span className="ml-1 text-xs text-muted">½</span>
                   )}
@@ -77,18 +98,28 @@ export default function RequestTable({
                 <td className="tabular px-3 py-2.5 text-right whitespace-nowrap">
                   {formatDays(days.get(request.id) ?? 0)}
                 </td>
-                <td className="px-3 py-2.5 text-muted">
-                  {KIND_LABELS_SHORT[request.kind]}
-                </td>
-                <td className="px-3 py-2.5">
+                {!compact && (
+                  <td className="px-3 py-2.5 text-muted">
+                    {KIND_LABELS_SHORT[request.kind]}
+                  </td>
+                )}
+                <td
+                  className={`py-2.5 ${compact ? "px-4 text-right sm:px-5" : "px-3"}`}
+                >
                   <StatusBadge status={request.status} />
-                  {note && (
+                  {/* In der schmalen Fassung ersetzt der Hinweis die Spalte "Art". */}
+                  {compact && request.kind === "special" && (
+                    <span className="mt-1 block text-xs text-muted">
+                      {KIND_LABELS_SHORT.special}
+                    </span>
+                  )}
+                  {note && !compact && (
                     <span className="mt-1 block max-w-[18rem] text-xs text-muted">
                       {note}
                     </span>
                   )}
                 </td>
-                {mode === "own" ? (
+                {compact ? null : mode === "own" ? (
                   <td className="px-4 py-2.5 sm:px-5">
                     {request.status === "pending" && (
                       <form action={cancelRequest}>
