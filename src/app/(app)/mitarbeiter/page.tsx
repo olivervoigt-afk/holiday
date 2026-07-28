@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AdminTabs from "@/components/admin-tabs";
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { CreateUserForm } from "@/components/user-forms";
 import YearSwitch from "@/components/year-switch";
@@ -28,6 +29,8 @@ export default async function TeamPage({
 
   return (
     <>
+      <AdminTabs current="/mitarbeiter" />
+
       <PageHeader
         title="Team"
         description={`${active.length} aktiv${inactive.length ? `, ${inactive.length} ausgeschieden` : ""}`}

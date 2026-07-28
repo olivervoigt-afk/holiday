@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   BellIcon,
   CalendarIcon,
-  FlagIcon,
   GearIcon,
   HomeIcon,
   ListIcon,
@@ -27,11 +26,11 @@ function linksFor(profile: Profile): NavLink[] {
     { href: "/abwesenheiten", label: "Abwesend", Icon: CalendarIcon },
   ];
 
+
+  // „Team“ führt zu den Stammdaten; die Feiertage sind dort ein Reiter und
+  // brauchen keinen eigenen Eintrag — sie werden zweimal im Jahr angefasst.
   if (profile.role === "admin") {
-    base.push(
-      { href: "/mitarbeiter", label: "Team", Icon: UsersIcon },
-      { href: "/feiertage", label: "Feiertage", Icon: FlagIcon },
-    );
+    base.push({ href: "/mitarbeiter", label: "Team", Icon: UsersIcon });
   }
 
   // Die Einstellungen sitzen als Zahnrad oben rechts, nicht in der Leiste.
@@ -39,7 +38,10 @@ function linksFor(profile: Profile): NavLink[] {
 }
 
 function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") return pathname === "/";
+  // Die Feiertage sind ein Reiter unter „Team“ — der Eintrag bleibt markiert.
+  if (href === "/mitarbeiter" && pathname.startsWith("/feiertage")) return true;
+  return pathname.startsWith(href);
 }
 
 /**

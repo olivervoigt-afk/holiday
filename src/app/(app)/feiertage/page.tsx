@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AdminTabs from "@/components/admin-tabs";
 import ConfirmButton from "@/components/confirm-button";
 import { AddHolidayForm, GenerateYearForm } from "@/components/holiday-forms";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
@@ -33,6 +34,8 @@ export default async function HolidaysPage({
 
   return (
     <>
+      <AdminTabs current="/feiertage" />
+
       <PageHeader
         title="Feiertage"
         description="Diese Tage werden bei jedem Antrag automatisch übersprungen."
