@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -167,13 +168,19 @@ export async function deleteUser(formData: FormData) {
   const me = await requireAdmin();
 
   const id = text(formData, "id");
-  if (id === me.id) return; // Eigenes Konto nicht löschbar.
-  if (!(await otherAdminsExist(id))) return;
+  // Eigenes Konto nicht löschbar, und der letzte Administrator bleibt.
+  if (id === me.id) redirect(`/mitarbeiter/${id}?fehler=selbst`);
+  if (!(await otherAdminsExist(id))) {
+    redirect(`/mitarbeiter/${id}?fehler=letzter-admin`);
+  }
 
   const admin = createAdminClient();
-  await admin.auth.admin.deleteUser(id);
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) redirect(`/mitarbeiter/${id}?fehler=${encodeURIComponent(error.message)}`);
 
   revalidatePath("/mitarbeiter");
+  // Die Detailseite gibt es jetzt nicht mehr — sonst landet man auf 404.
+  redirect("/mitarbeiter");
 }
 
 /* ---------------- Jahreskontingente ---------------- */

@@ -7,7 +7,14 @@ import {
   EditEntitlementForm,
 } from "@/components/entitlement-forms";
 import RequestList from "@/components/request-list";
-import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  FormMessage,
+  PageHeader,
+} from "@/components/ui";
 import { EditUserForm, PasswordResetForm } from "@/components/user-forms";
 import YearSwitch from "@/components/year-switch";
 import { lastYear, resolveYear, selectableYears } from "@/lib/years";
@@ -31,18 +38,30 @@ import { COUNTRY_LABELS, ROLE_LABELS } from "@/lib/types";
 
 export const metadata = { title: "Mitarbeiter" };
 
+/** Meldung, wenn das Löschen abgelehnt wurde. */
+function deleteProblem(code: string | undefined): string | null {
+  if (!code) return null;
+  if (code === "selbst") return "Das eigene Konto lässt sich nicht löschen.";
+  if (code === "letzter-admin") {
+    return "Das ist der einzige aktive Administrator — bitte zuerst einen zweiten anlegen.";
+  }
+  return `Löschen fehlgeschlagen: ${code}`;
+}
+
 export default async function EmployeePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ jahr?: string }>;
+  searchParams: Promise<{ jahr?: string; fehler?: string }>;
 }) {
   const me = await requireProfile();
   if (me.role !== "admin") redirect("/");
 
   const { id } = await params;
-  const year = resolveYear((await searchParams).jahr);
+  const query = await searchParams;
+  const year = resolveYear(query.jahr);
+  const problem = deleteProblem(query.fehler);
 
   const person = await getProfileById(id);
   if (!person) notFound();
@@ -198,8 +217,9 @@ export default async function EmployeePage({
                 title="Konto löschen"
                 description="Löscht auch alle Anträge und Kontingente. Wer nur ausscheidet, wird oben besser auf inaktiv gesetzt."
               />
-              <form action={deleteUser} className="p-5">
+              <form action={deleteUser} className="space-y-3 p-5">
                 <input type="hidden" name="id" value={person.id} />
+                <FormMessage state={problem ? { error: problem } : undefined} />
                 <ConfirmButton
                   question={`${person.full_name || person.email} endgültig löschen? Alle Anträge und Kontingente gehen verloren.`}
                 >
