@@ -143,6 +143,30 @@ npm run test-mail -- name@example.com
 Ohne die beiden Werte bleibt alles bei der Glocke in der Anwendung — der
 Versand wird stillschweigend übersprungen und kein Antrag scheitert daran.
 
+## Als App auf dem Handy
+
+Die Anwendung ist installierbar (PWA). Auf dem iPhone in Safari öffnen, dann
+**Teilen → Zum Home-Bildschirm**. Danach liegt sie mit eigenem Symbol auf dem
+Home-Bildschirm und startet im Vollbild ohne Adresszeile. Auf Android bietet
+Chrome das von selbst an.
+
+Am Zugang ändert das nichts — geschützt wird weiterhin durch die Anmeldung.
+Eine Verteilung über den App Store ist weder nötig noch sinnvoll: sie wäre
+öffentlich, kostet 99 $ im Jahr und TestFlight-Fassungen verfallen nach
+90 Tagen.
+
+Das Symbol liegt als `src/app/icon.svg` vor. Nach einer Änderung daran:
+
+```bash
+npm run icons
+```
+
+Das erzeugt die Rastergrössen für Manifest, Home-Bildschirm und Browser-Reiter.
+
+Noch nicht eingebaut ist ein Service Worker. Er wäre die Voraussetzung für
+Push-Nachrichten aufs iPhone (ab iOS 16.4) — Offline-Betrieb dagegen wäre bei
+einer Anwendung, die Salden anzeigt, eher gefährlich als nützlich.
+
 ## Veröffentlichen
 
 1. Auf [Vercel](https://vercel.com) *Add New → Project* wählen und das Repo

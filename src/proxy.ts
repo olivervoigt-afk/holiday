@@ -57,7 +57,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Alles ausser statischen Dateien und Bildern.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Alles ausser statischen Dateien, Bildern und dem Manifest. Letzteres
+    // muss ohne Anmeldung erreichbar sein, sonst kann Safari die Anwendung
+    // nicht auf den Home-Bildschirm legen.
+    "/((?!_next/static|_next/image|manifest\\.webmanifest|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

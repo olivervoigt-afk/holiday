@@ -18,6 +18,16 @@ export default function LoginPage() {
         <Suspense>
           <LoginForm />
         </Suspense>
+
+        {/* Nur auf schmalen Bildschirmen — am Rechner ergibt der Hinweis
+            keinen Sinn. Kein JavaScript nötig, deshalb keine Erkennung des
+            Geräts: wer schon installiert hat, sieht diese Seite ohnehin
+            selten. */}
+        <p className="mt-6 text-center text-xs leading-relaxed text-muted sm:hidden">
+          Tipp: Über <span className="font-medium">Teilen</span> →{" "}
+          <span className="font-medium">Zum Home-Bildschirm</span> lässt sich
+          die Urlaubsverwaltung als App ablegen.
+        </p>
       </div>
     </main>
   );

@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Urlaubsverwaltung">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4079ff"/>
+      <stop offset="1" stop-color="#1442c8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Voller Rand ohne eigene Rundung: iOS legt seine Maske selbst darüber. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Aufhänger des Kalenderblatts -->
+  <rect x="174" y="106" width="30" height="62" rx="15" fill="#ffffff" opacity="0.92"/>
+  <rect x="308" y="106" width="30" height="62" rx="15" fill="#ffffff" opacity="0.92"/>
+
+  <!-- Kalenderblatt -->
+  <rect x="106" y="138" width="300" height="278" rx="42" fill="#ffffff"/>
+
+  <!-- Haken: der genehmigte Antrag -->
+  <path d="M180 288l50 50 102-114" fill="none" stroke="#1442c8" stroke-width="38"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
