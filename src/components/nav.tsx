@@ -101,7 +101,11 @@ export function TopNav({
           className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight whitespace-nowrap transition-opacity hover:opacity-70"
         >
           <Logo className="size-7" />
-          Urlaub<span className="font-normal text-muted">sverwaltung</span>
+          {/* Ein einziges Element, sonst legt der Flex-Abstand eine Lücke
+              mitten ins Wort. */}
+          <span>
+            Urlaub<span className="font-normal text-muted">sverwaltung</span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
