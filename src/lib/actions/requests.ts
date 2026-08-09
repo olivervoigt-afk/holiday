@@ -408,7 +408,16 @@ export async function reopenRequest(formData: FormData) {
   const id = text(formData, "id");
 
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!data) return;
+  const leave = data as LeaveRequest;
+
+  const { error } = await supabase
     .from("leave_requests")
     .update({
       status: "pending",
@@ -417,6 +426,24 @@ export async function reopenRequest(formData: FormData) {
       decision_note: "",
     })
     .eq("id", id);
+
+  if (error) return;
+
+  // Ohne Nachricht stünde der Urlaub für den Mitarbeiter plötzlich wieder
+  // auf „Offen", ohne dass er erführe warum.
+  const applicant = await getProfileById(leave.profile_id);
+  if (applicant) {
+    const isHoliday = await holidaysFor(applicant.country);
+    const days = requestDays(leave, isHoliday);
+
+    await notify({
+      recipient: applicant,
+      title: "Dein Antrag ist wieder offen",
+      body: `${KIND_LABELS_SHORT[leave.kind]}: ${formatRange(leave.start_date, leave.end_date)} (${formatDayCount(days)})\n\nDie frühere Entscheidung wurde zurückgenommen, der Antrag wird erneut geprüft.`,
+      href: "/antraege",
+      subjectId: applicant.id,
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/antraege");

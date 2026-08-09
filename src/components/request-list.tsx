@@ -188,11 +188,16 @@ export default function RequestList({
               </div>
             )}
 
-            {mode === "admin" && request.status === "approved" && (
-              <div className="mt-3">
-                <CancelRequestForm requestId={request.id} direct />
-              </div>
-            )}
+            {/* Stornieren ergibt nur Sinn, solange der Urlaub noch bevorsteht
+                — genommen ist genommen. Für Berichtigungen an vergangenen
+                Einträgen gibt es „Entscheidung zurücknehmen“. */}
+            {mode === "admin" &&
+              request.status === "approved" &&
+              request.end_date >= toISODate(new Date()) && (
+                <div className="mt-3">
+                  <CancelRequestForm requestId={request.id} direct />
+                </div>
+              )}
 
             {mode === "admin" && request.status === "pending" && (
               <div className="mt-3 space-y-2">
@@ -227,12 +232,16 @@ export default function RequestList({
                     Entscheidung zurücknehmen
                   </Button>
                 </form>
-                <form action={deleteRequest}>
-                  <input type="hidden" name="id" value={request.id} />
-                  <ConfirmButton question="Diesen Antrag endgültig löschen?">
-                    Löschen
-                  </ConfirmButton>
-                </form>
+                {/* Löschen tilgt den Nachweis. Bei genehmigtem Urlaub ist das
+                    der falsche Weg — dort erst zurücknehmen, dann entscheiden. */}
+                {request.status !== "approved" && (
+                  <form action={deleteRequest}>
+                    <input type="hidden" name="id" value={request.id} />
+                    <ConfirmButton question="Diesen Antrag endgültig löschen? Damit ist er nicht mehr nachweisbar.">
+                      Löschen
+                    </ConfirmButton>
+                  </form>
+                )}
               </div>
             )}
           </li>
