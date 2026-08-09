@@ -10,6 +10,7 @@ import {
   ListIcon,
   UsersIcon,
 } from "@/components/icons";
+import Logo from "@/components/logo";
 import type { Profile } from "@/lib/types";
 
 type NavLink = {
@@ -97,8 +98,9 @@ export function TopNav({
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link
           href="/"
-          className="text-[15px] font-semibold tracking-tight whitespace-nowrap transition-opacity hover:opacity-70"
+          className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight whitespace-nowrap transition-opacity hover:opacity-70"
         >
+          <Logo className="size-7" />
           Urlaub<span className="font-normal text-muted">sverwaltung</span>
         </Link>
 

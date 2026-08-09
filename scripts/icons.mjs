@@ -8,10 +8,13 @@
  * Bildes wegschneidet.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const SOURCE = "src/app/icon.svg";
+
+/** Dieselbe Zeichnung, öffentlich erreichbar für Kopfzeile und Anmeldung. */
+const PUBLIC_COPY = "public/icons/logo.svg";
 
 const TARGETS = [
   { file: "public/icons/icon-192.png", size: 192, padding: 0 },
@@ -24,6 +27,9 @@ const TARGETS = [
 
 const svg = await readFile(SOURCE);
 await mkdir("public/icons", { recursive: true });
+
+await copyFile(SOURCE, PUBLIC_COPY);
+console.log(`  ${PUBLIC_COPY.padEnd(38)} Vektor`);
 
 for (const { file, size, padding } of TARGETS) {
   const inner = Math.round(size * (1 - 2 * padding));
